@@ -10,7 +10,8 @@ class DifferentialEvolver:
                        pop_size=20, dim = (1,), 
                        proj_to_domain = lambda x : x, 
                        f_for_individuals = False, proj_for_individuals = None,
-                       maximize = False
+                       maximize = False,
+                       use_cuda = False
                 ):
         
         if isinstance(dim,int): dim = (dim,)
@@ -27,13 +28,17 @@ class DifferentialEvolver:
         
         self.maximize = maximize
         
+        if use_cuda: P = P.cuda()
+        
         P = proj_to_domain(P)
 
-        self.idx_prob = 1. - torch.eye(pop_size)
+        self.idx_prob = (1. - torch.eye(pop_size)).to(P)
         self.cost = f(P).squeeze()
         self.P = P
         self.f = f if not maximize else (lambda x: -f(x)) 
         self.proj_to_domain = proj_to_domain
+        
+        
         
     def step(self, mut=0.8, crossp=0.7):
         I=torch.multinomial(self.idx_prob,3).T
@@ -46,15 +51,14 @@ class DifferentialEvolver:
         candidates = self.proj_to_domain(T*mutants + (1-T)*self.P)
         f_candidates = self.f(candidates).squeeze()
         
-        should_replace = (f_candidates <= self.cost).float()
+        should_replace = (f_candidates <= self.cost)
         
-        self.cost = should_replace*f_candidates + (1-should_replace)*self.cost
+        self.cost = torch.where(should_replace,f_candidates,self.cost)
         
-        S = should_replace.view(self.pop_size,*[1 for _ in self.dim]) # adjust dimensions for broadcasting
-        
+        # adjust dimensions for broadcasting
+        S = should_replace.float().view(self.pop_size,*[1 for _ in self.dim]) 
         
         self.P = S*candidates + (1-S)*self.P
-            
             
     def best(self):
         best_cost, best_index = torch.min(self.cost, dim=0)
@@ -69,7 +73,9 @@ def optimize(f, initial_pop = None,
                 mut=0.8, crossp=0.7,  
                 epochs=1000, 
                 proj_to_domain = lambda x : x, 
-                f_for_individuals = False, proj_for_individuals = None, maximize=False):
+                f_for_individuals = False, proj_for_individuals = None, 
+                maximize = False,
+                use_cuda = False):
     
     
     D = DifferentialEvolver(f=f, 
@@ -78,20 +84,28 @@ def optimize(f, initial_pop = None,
                             proj_to_domain = proj_to_domain, 
                             f_for_individuals = f_for_individuals, 
                             proj_for_individuals = proj_for_individuals,
-                            maximize=maximize
+                            maximize=maximize,
+                            use_cuda=use_cuda
                            )
     if isinstance(epochs, int): epochs = range(epochs)
         
     pbar = progress_bar(epochs)
     
+    test_each = 20
+    
     try:
-        for i in pbar:
+        i = test_each+1
+        
+        for _ in pbar:
+            i -= 1
             D.step(mut=mut, crossp=crossp)
             
-            best_cost, _ = D.best()
-            pbar.comment = f"| best cost = {best_cost:.3f}"
+            if i == 0:
+                i = test_each
+                best_cost, _ = D.best()
+                pbar.comment = f"| best cost = {best_cost:.4f}"
             
     except KeyboardInterrupt:
-        pass
+        print("Interrupting! Returning best found so far")
     
     return D.best()
