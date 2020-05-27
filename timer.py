@@ -9,8 +9,9 @@ class Timer:
         if self.i is None: return 1
         eps = 1e-7
         t = time.time() - self.start
-
-        return int(self.i*self.num_seconds/t)
+        if t >= self.num_seconds: return self.i
+    
+        return int((self.i*self.num_seconds)/t)
     
     def __iter__(self):
         self.start = time.time()

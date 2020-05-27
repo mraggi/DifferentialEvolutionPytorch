@@ -7,7 +7,7 @@ def individual2population(f):
 class DifferentialEvolver:
     def __init__(self, f, 
                        initial_pop = None, 
-                       pop_size=20, dim = (1,), 
+                       pop_size=50, dim = (1,), # ignored if initial_pop is given 
                        proj_to_domain = lambda x : x, 
                        f_for_individuals = False, proj_for_individuals = None,
                        maximize = False,
@@ -26,18 +26,16 @@ class DifferentialEvolver:
         if f_for_individuals: f = individual2population(f)
         if proj_for_individuals: proj_to_domain = individual2population(proj_to_domain)
         
-        self.maximize = maximize
-        
         if use_cuda: P = P.cuda()
         
         P = proj_to_domain(P)
 
-        self.idx_prob = (1. - torch.eye(pop_size)).to(P)
+        self.idx_prob = (1. - torch.eye(self.pop_size)).to(P)
         self.cost = f(P).squeeze()
         self.P = P
         self.f = f if not maximize else (lambda x: -f(x)) 
         self.proj_to_domain = proj_to_domain
-        
+        self.maximize = maximize
         
         
     def step(self, mut=0.8, crossp=0.7):
