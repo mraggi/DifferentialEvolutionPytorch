@@ -6,3 +6,4 @@ class VariableSizeProgressBar(fpb):
         super().on_update(val,text)
 
 progress_bar = VariableSizeProgressBar
+
