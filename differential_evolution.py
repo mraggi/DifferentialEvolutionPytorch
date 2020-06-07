@@ -11,7 +11,8 @@ class DifferentialEvolver:
                        proj_to_domain = lambda x : x, 
                        f_for_individuals = False, proj_for_individuals = None,
                        maximize = False,
-                       use_cuda = False
+                       use_cuda = False,
+                       prob_choosing_method = 'automatic' # either 'randint', 'multinomial' or 'automatic'
                 ):
         
         if isinstance(dim,int): dim = (dim,)
@@ -30,17 +31,25 @@ class DifferentialEvolver:
         
         P = proj_to_domain(P)
 
-        self.idx_prob = (1. - torch.eye(self.pop_size)).to(P)
+        self.use_randint = (prob_choosing_method in ['randint', 'random', 'rand_int'])
+        
+        if prob_choosing_method in ['automatic','auto',None]: self.use_randint = (self.pop_size >= 200)
+        
+        print(f"Probability choosing method selected: {prob_choosing_method}. Actual method selected: use randint? {self.use_randint}")
+        
+        if not self.use_randint:
+            self.idx_prob = (1. - torch.eye(self.pop_size)).to(P)
+        
+        
         self.cost = f(P).squeeze()
         self.P = P
         self.f = f if not maximize else (lambda x: -f(x)) 
         self.proj_to_domain = proj_to_domain
         self.maximize = maximize
-        
-        
+    
+     
     def step(self, mut=0.8, crossp=0.7):
-        I=torch.multinomial(self.idx_prob,3).T
-        A,B,C = self.P[I]
+        A,B,C = self._get_ABC()
         
         mutants = A + mut*(B - C)
         
@@ -65,6 +74,11 @@ class DifferentialEvolver:
             
         return best_cost.item(), self.P[best_index]
     
+    def _get_ABC(self):
+        n = self.pop_size
+        I = torch.randint(0,n,(3,n)) if self.use_randint else torch.multinomial(self.idx_prob,3).T
+        return self.P[I]
+    
     
 def optimize(f, initial_pop = None, 
                 pop_size=20, dim = (1,), 
@@ -73,7 +87,9 @@ def optimize(f, initial_pop = None,
                 proj_to_domain = lambda x : x, 
                 f_for_individuals = False, proj_for_individuals = None, 
                 maximize = False,
-                use_cuda = False):
+                use_cuda = False,
+                prob_choosing_method = 'automatic'
+            ):
     
     
     D = DifferentialEvolver(f=f, 
@@ -83,7 +99,8 @@ def optimize(f, initial_pop = None,
                             f_for_individuals = f_for_individuals, 
                             proj_for_individuals = proj_for_individuals,
                             maximize=maximize,
-                            use_cuda=use_cuda
+                            use_cuda=use_cuda,
+                            prob_choosing_method=prob_choosing_method
                            )
     if isinstance(epochs, int): epochs = range(epochs)
         
