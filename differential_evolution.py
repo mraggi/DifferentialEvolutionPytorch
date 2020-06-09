@@ -4,6 +4,12 @@ from progress_bar import progress_bar
 def individual2population(f):
     return lambda P : torch.stack([f(p) for p in P])
 
+def tofunc(x):
+    if isinstance(x,float) or isinstance(x,int): 
+        return lambda : x
+    else:
+        return x
+
 class DifferentialEvolver:
     def __init__(self, f, 
                        initial_pop = None, 
@@ -103,7 +109,8 @@ def optimize(f, initial_pop = None,
                             prob_choosing_method=prob_choosing_method
                            )
     if isinstance(epochs, int): epochs = range(epochs)
-        
+    mut, crossp = tofunc(mut), tofunc(crossp)
+    
     pbar = progress_bar(epochs)
     
     test_each = 20
@@ -113,7 +120,7 @@ def optimize(f, initial_pop = None,
         
         for _ in pbar:
             i -= 1
-            D.step(mut=mut, crossp=crossp)
+            D.step(mut=mut(), crossp=crossp())
             
             if i == 0:
                 i = test_each
