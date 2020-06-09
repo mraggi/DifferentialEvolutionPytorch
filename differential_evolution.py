@@ -1,15 +1,10 @@
 import torch
 from progress_bar import progress_bar
+from helpers import *
 
 def individual2population(f):
     return lambda P : torch.stack([f(p) for p in P])
-
-def tofunc(x):
-    if isinstance(x,float) or isinstance(x,int): 
-        return lambda : x
-    else:
-        return x
-
+    
 class DifferentialEvolver:
     def __init__(self, f, 
                        initial_pop = None, 
