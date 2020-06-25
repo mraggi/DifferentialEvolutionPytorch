@@ -34,9 +34,7 @@ class DifferentialEvolver:
 
         self.use_randint = (prob_choosing_method in ['randint', 'random', 'rand_int'])
         
-        if prob_choosing_method in ['automatic','auto',None]: self.use_randint = (self.pop_size >= 200)
-        
-        print(f"Probability choosing method selected: {prob_choosing_method}. Actual method selected: use randint? {self.use_randint}")
+        if prob_choosing_method in ['automatic', 'auto', None]: self.use_randint = (self.pop_size >= 200)
         
         if not self.use_randint:
             self.idx_prob = (1. - torch.eye(self.pop_size)).to(P)
@@ -54,7 +52,7 @@ class DifferentialEvolver:
         
         mutants = A + mut*(B - C)
         
-        T = (torch.rand_like(self.P) < crossp).float()
+        T = (torch.rand_like(self.P) < crossp).to(self.P)
         
         candidates = self.proj_to_domain(T*mutants + (1-T)*self.P)
         f_candidates = self.f(candidates).squeeze()
@@ -64,7 +62,7 @@ class DifferentialEvolver:
         self.cost = torch.where(should_replace,f_candidates,self.cost)
         
         # adjust dimensions for broadcasting
-        S = should_replace.float().view(self.pop_size,*[1 for _ in self.dim]) 
+        S = should_replace.to(self.P).view(self.pop_size,*[1 for _ in self.dim]) 
         
         self.P = S*candidates + (1-S)*self.P
             
