@@ -59,7 +59,7 @@ class DifferentialEvolver:
         self.maximize = maximize
     
     def shuffle(self):
-        I = torch.randperm(self.P.shape[0], device=P.device)
+        I = torch.randperm(self.P.shape[0], device=self.P.device)
         self.P = self.P[I]
         self.cost = self.cost[I]
      
