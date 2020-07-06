@@ -1,12 +1,13 @@
 import torch
 from progress_bar import progress_bar
 from helpers import *
+
 def individual2population(f):
     return lambda P : torch.stack([f(p) for p in P])
 
 class DifferentialEvolver:
     def __init__(self, f, 
-                       initial_pop = None, 
+                       initial_pop = None, # In next version, I'll remove the option of giving pop_size, dims and num_populations instead of initial_population
                        pop_size=50, dim = (1,), # ignored if initial_pop is given
                        num_populations=1, # If initial_pop is given, then num_populations must divide initial_pop.shape[0]
                        proj_to_domain = lambda x : x, 
