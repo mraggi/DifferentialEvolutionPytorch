@@ -55,9 +55,9 @@ class DifferentialEvolver:
         else:
             self.idx_prob = get_block_eye(block_size,self.num_populations).to(P)
         
-        self.cost = f(P).squeeze()
-        self.P = P
         self.f = f if not maximize else (lambda x: -f(x)) 
+        self.cost = self.f(P).squeeze()
+        self.P = P
         self.proj_to_domain = proj_to_domain
         self.maximize = maximize
         
